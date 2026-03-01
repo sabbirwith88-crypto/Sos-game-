@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SOS Game · Emoji style</title>
+<style>
+  :root{
+    --bg:#bfe6ff;
+    --cell-bg:#fff;
+    --cell-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    --gap:6px;
+    --grid-bg: transparent;
+    --primary-color: #4a6fa5;
+    --secondary-color: #ff6b6b;
+    --highlight-color: #fff8c4;
+  }
+  body{
+    margin:0;
+    font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+    overflow-x: hidden;
+  }
+  .center-screen{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    padding:20px;
+    box-sizing: border-box;
+  }
+  .big-btn{
+    background:#fff;
+    border:none;
+    padding:14px 22px;
+    border-radius:12px;
+    margin:10px;
+    box-shadow:var(--cell-shadow);
+    cursor:pointer;
+    font-size:18px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    color: var(--primary-color);
+    min-width: 200px;
+  }
+  .big-btn:hover, .big-btn:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
+  .big-btn:active {
+    transform: translateY(0);
+  }
+  .hidden{ display:none !important; }
+  .top-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:12px 10px;
+    max-width:980px;
+    margin:0 auto;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .player-box{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:16px;
+    min-width: 0;
+    flex: 1;
+  }
+  .name-input{
+    width:100px;
+    padding:8px;
+    border-radius:8px;
+    border:2px solid rgba(0,0,0,0.1);
+    text-align:center;
+    font-size: 14px;
+    font-weight: 600;
+    background: white;
+    flex-shrink: 0;
+  }
+  .name-input.active{
+    outline:3px solid var(--primary-color);
+    box-shadow:0 4px 10px rgba(0,0,0,0.08) inset;
+  }
+  .score{
+    font-weight:700;
+    min-width:32px;
+    text-align:center;
+    font-size: 18px;
+    color: var(--primary-color);
+  }
+  #gridWrapper{
+    position:relative;
+    max-width:95vw;
+    margin:6px auto 24px;
+    padding:12px;
+    box-sizing:border-box;
+    background: var(--grid-bg);
+    border-radius: 12px;
+    transition: background 0.3s ease;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--gap);
+  }
+  .cell{
+    background:var(--cell-bg);
+    border-radius:10px;
+    width:100%;
+    padding-top:110%;
+    position:relative;
+    box-shadow: var(--cell-shadow);
+    cursor:pointer;
+    overflow:visible;
+    user-select:none;
+    transition: transform 0.2s ease, background 0.3s ease;
+  }
+  .cell:hover {
+    transform: scale(1.03);
+  }
+  .cell span{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:1.5rem;
+    font-weight:800;
+    color:#000;
+  }
+  .cell.highlight {
+    background: var(--highlight-color);
+    border: 2px solid orange;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .line{
+    position:absolute;
+    height:2px;
+    background:#ff6b6b;
+    border-radius:2px;
+    transform-origin:center;
+    pointer-events:none;
+    z-index:5;
+    animation: drawLine 0.5s ease-out;
+  }
+  @keyframes drawLine {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .button-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 20px;
+    padding: 0 10px;
+  }
+  #currentLetter{
+    display:inline-block;
+    padding:10px 20px;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:var(--cell-shadow);
+    cursor:pointer;
+    font-size:16px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    color: var(--primary-color);
+    margin: 0;
+  }
+  #currentLetter:hover, #currentLetter:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
+  .info{
+    text-align:center;
+    font-size:15px;
+    color:#333;
+    margin-bottom:12px;
+    max-width: 90%;
+    line-height: 1.5;
+  }
+  #backBtn {
+    padding: 10px 16px;
+    background: var(--secondary-color);
+    color: white;
+    margin: 0;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+  .color-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+    max-width: 300px;
+  }
+  .color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .color-option:hover, .color-option:focus {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  .color-option.selected {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 3px white, 0 0 0 5px #333;
+  }
+  .game-title {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  @media (max-width: 768px) {
+    .big-btn { padding: 16px 20px; font-size: 16px; min-width: 180px; }
+    .game-title { font-size: 1.8rem; }
+    .top-bar { flex-direction: column; gap: 15px; }
+    .player-box { width: 100%; justify-content: center; }
+    .name-input { width: 120px; font-size: 16px; }
+    .grid { gap: 4px; }
+    .cell span { font-size: 1.3rem; }
+    #currentLetter { padding: 8px 16px; font-size: 14px; }
+    #backBtn { padding: 8px 14px; font-size: 14px; }
+    .button-container { flex-direction: column; gap: 10px; align-items: center; }
+  }
+  
+  .end-game-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 10000;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .end-game-message { font-size: 2.5rem; margin-bottom: 30px; font-weight: 700; }
+  .end-game-buttons { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 300px; }
+  .end-game-btn { padding: 16px; border-radius: 12px; border: none; font-size: 18px; font-weight: 600; cursor: pointer; }
+  .restart-btn { background: var(--primary-color); color: white; }
+  .back-end-btn { background: var(--secondary-color); color: white; }
+  .turn-indicator {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .welcome-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    background: linear-gradient(-45deg, #0f2027, #2c5364, #1a2a6c, #b21f1f, #ff512f);
+    background-size: 400% 400%;
+    animation: bgAnimation 20s ease infinite;
+  }
+  @keyframes bgAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .sos-grid {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    grid-auto-rows: 50px;
+    z-index: 0;
+    opacity: 0.3;
+  }
+  .sos-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #00eaff;
+    text-shadow: 0 0 4px #00eaff;
+    user-select: none;
+    transition: 0.4s;
+    animation: colorShift 6s linear infinite;
+  }
+  @keyframes colorShift {
+    0%   { color: #00eaff; text-shadow: 0 0 4px #00eaff; }
+    25%  { color: #ff0080; text-shadow: 0 0 4px #ff0080; }
+    50%  { color: #39ff14; text-shadow: 0 0 4px #39ff14; }
+    75%  { color: #ffea00; text-shadow: 0 0 4px #ffea00; }
+    100% { color: #00eaff; text-shadow: 0 0 4px #00eaff; }
+  }
+  .sos-cell.highlight {
+    color: #ff004c !important;
+    text-shadow: 0 0 8px #ff004c, 0 0 16px #ff004c;
+    transform: scale(1.2) rotate(-8deg);
+  }
+  .welcome-card {
+    position: relative;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(0,255,255,0.4);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 0 14px rgba(0,255,255,0.25);
+    max-width: 280px;
+    width: 85%;
+  }
+  .welcome-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: cyan;
+    text-shadow: 0 0 3px cyan, 0 0 6px #00ffe7;
+    margin-bottom: 14px;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .welcome-info {
+    font-size: 0.9rem;
+    color: #cceeff;
+    margin-bottom: 20px;
+  }
+  .welcome-btn {
+    display: block;
+    width: 100%;
+    margin: 8px auto;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    border-radius: 10px;
+    background: transparent;
+    color: cyan;
+    border: 1.5px solid cyan;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: 0.25s;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .welcome-btn:hover {
+    background: rgba(0,255,255,0.1);
+    box-shadow: 0 0 8px cyan, 0 0 16px cyan;
+    transform: scale(1.05);
+  }
+  .icon-bar {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(0,255,255,0.1);
+    border: 2px solid cyan;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    color: cyan;
+    box-shadow: 0 0 8px rgba(0,255,255,0.4);
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .icon-btn:hover {
+    transform: scale(1.2) rotate(15deg);
+    background: rgba(0,255,255,0.2);
+    box-shadow: 0 0 12px cyan, 0 0 24px cyan;
+  }
+  .difficulty-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    background: linear-gradient(270deg, #ff9ff3, #00d2d3, #feca57, #54a0ff);
+    background-size: 800% 800%;
+    animation: bgMove 12s ease infinite;
+  }
+  @keyframes bgMove {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+  }
+  .fancy-title {
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #f7d94c;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  .difficulty-info {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+    color: #f7d94c;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  }
+  .difficulty-options {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 280px;
+    margin: auto;
+  }
+  .diff-btn {
+    padding: 18px 26px;
+    border-radius: 16px;
+    border: none;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.3s ease;
+    color: #fff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+  .diff-btn::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: rgba(255,255,255,0.2);
+    transform: rotate(25deg);
+    transition: all 0.4s;
+  }
+  .diff-btn:hover::before { left: 100%; }
+  .diff-btn:hover { transform: scale(1.08); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .diff-btn.easy { background: linear-gradient(135deg,#6ee7b7,#3b82f6); }
+  .diff-btn.medium { background: linear-gradient(135deg,#facc15,#f97316); }
+  .diff-btn.hard { background: linear-gradient(135deg,#ef4444,#7e22ce); }
+  .back-diff-btn {
+    margin-top: 35px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(0,0,0,0.7);
+    color: #f7d94c;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .back-diff-btn:hover { transform: translateY(-3px) scale(1.05); background: rgba(0,0,0,0.8); }
+  .color-selection-screen { z-index: 10; }
+  .color-selection-title { font-size: 2rem; color: white; margin-bottom: 20px; }
+  .pause-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 10000;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .pause-message { font-size: 2.5rem; margin-bottom: 30px; font-weight: 700; }
+  .resume-btn {
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--primary-color);
+    color: white;
+  }
+  .resume-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<!-- Welcome screen with emoji icons (no Chinese) -->
+<div id="welcomeScreen" class="center-screen">
+  <div class="welcome-bg"><div class="sos-grid" id="sosGrid"></div></div>
+  <div class="welcome-card">
+    <h1 class="welcome-title">🎮 SOS GAME</h1>
+    <p class="welcome-info">🧩 Match S–O–S to score points!</p>
+    <button class="welcome-btn" id="btnRobot">🤖 Play with Robot</button>
+    <button class="welcome-btn" id="btnHuman">👥 Play with Friend</button>
+    <div class="icon-bar">
+      <div class="icon-btn" id="boardColorBtn">🎨</div>   <!-- palette emoji -->
+      <div class="icon-btn" id="bgColorBtn">🌈</div>      <!-- rainbow bg -->
+    </div>
+  </div>
+</div>
+
+<!-- Board color selection -->
+<div id="boardColorScreen" class="center-screen color-selection-screen hidden">
+  <h2 class="color-selection-title">🎨 Board Color</h2>
+  <p class="info" style="color:white;">Choose game grid background</p>
+  <div class="color-palette">
+    <div class="color-option selected" style="background:#bfe6ff;" data-color="#bfe6ff"></div>
+    <div class="color-option" style="background:#ffbfd9;" data-color="#ffbfd9"></div>
+    <div class="color-option" style="background:#c9ffbf;" data-color="#c9ffbf"></div>
+    <div class="color-option" style="background:#ffffbf;" data-color="#ffffbf"></div>
+    <div class="color-option" style="background:#ffd9bf;" data-color="#ffd9bf"></div>
+    <div class="color-option" style="background:#d9bfff;" data-color="#d9bfff"></div>
+    <div class="color-option" style="background:#bff6ff;" data-color="#bff6ff"></div>
+    <div class="color-option" style="background:#ffbfbf;" data-color="#ffbfbf"></div>
+    <div class="color-option" style="background:#000;" data-color="#000000"></div>
+  </div>
+  <button class="big-btn" id="confirmBoardColorBtn">✅ Confirm</button>
+  <button id="backFromBoardColor" class="big-btn">🔙 Back</button>
+</div>
+
+<!-- Background color selection -->
+<div id="backgroundColorScreen" class="center-screen color-selection-screen hidden">
+  <h2 class="color-selection-title">🌈 Background Color</h2>
+  <p class="info" style="color:white;">Choose page background</p>
+  <div class="color-palette">
+    <div class="color-option selected" style="background:#bfe6ff;" data-color="#bfe6ff"></div>
+    <div class="color-option" style="background:#ffbfd9;" data-color="#ffbfd9"></div>
+    <div class="color-option" style="background:#c9ffbf;" data-color="#c9ffbf"></div>
+    <div class="color-option" style="background:#ffffbf;" data-color="#ffffbf"></div>
+    <div class="color-option" style="background:#ffd9bf;" data-color="#ffd9bf"></div>
+    <div class="color-option" style="background:#d9bfff;" data-color="#d9bfff"></div>
+    <div class="color-option" style="background:#bff6ff;" data-color="#bff6ff"></div>
+    <div class="color-option" style="background:#ffbfbf;" data-color="#ffbfbf"></div>
+    <div class="color-option" style="background:#000;" data-color="#000000"></div>
+  </div>
+  <button class="big-btn" id="confirmBgColorBtn">✅ Confirm</button>
+  <button id="backFromBgColor" class="big-btn">🔙 Back</button>
+</div>
+
+<!-- Difficulty screen (fully emoji) -->
+<div id="difficultyScreen" class="center-screen hidden">
+  <div class="difficulty-bg"></div>
+  <h2 class="fancy-title">⚙️ AI Difficulty ⚙️</h2>
+  <p class="difficulty-info">🤔 How smart should AI be?</p>
+  <div class="difficulty-options">
+    <button class="diff-btn easy" data-diff="easy">🐣 Easy</button>
+    <button class="diff-btn medium" data-diff="medium">⚡ Medium</button>
+    <button class="diff-btn hard" data-diff="hard">🧠 Hard</button>
+  </div>
+  <button id="backFromDifficulty" class="back-diff-btn">🔙 Back</button>
+</div>
+
+<!-- Game screen -->
+<div id="gameScreen" class="hidden" style="padding-bottom:40px;">
+  <div class="top-bar">
+    <div class="player-box">
+      <input id="p1Name" class="name-input" value="Player 1" title="click to set active" />
+      <div> 🏆 <span id="p1Score" class="score">0</span></div>
+    </div>
+    <div class="player-box">
+      <input id="p2Name" class="name-input" value="Player 2" title="click to set active" />
+      <div> 🏆 <span id="p2Score" class="score">0</span></div>
+    </div>
+  </div>
+  
+  <div id="turnIndicator" class="turn-indicator">🎲 Your Turn: Player 1</div>
+  
+  <div id="gridWrapper"><div id="gameGrid" class="grid"></div></div>
+  
+  <div class="button-container">
+    <div id="currentLetter">🔤 Current: S</div>
+    <button id="backBtn" class="big-btn">🔙 Menu</button>
+  </div>
+</div>
+
+<script>
+/* Audio context */
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playClickSound() {
+  if (!audioCtx) initAudio();
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "square"; o.frequency.value = 1500; g.gain.value = 0;
+  o.connect(g).connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.5, now + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+  o.start(now); o.stop(now + 0.1);
+}
+function playScoreSound() {
+  if (!audioCtx) initAudio();
+  const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+  osc.type = "sine"; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.4);
+  g.gain.setValueAtTime(1, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+}
+function playGameOverSound() {
+  if (!audioCtx) initAudio();
+  const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+  osc.type = "sawtooth"; osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 1.2);
+  g.gain.setValueAtTime(0.7, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 1.2);
+}
+
+// ---------- GLOBALS ----------
+const TOTAL_CELLS = 80, COLS = 8;
+let gridData = new Array(TOTAL_CELLS).fill('');
+let activePlayer = 1, currentLetter = 'S', scores = {1:0,2:0};
+let playMode = null, aiDifficulty = 'easy', aiThinking = false, gamePaused = false;
+
+const welcomeScreen = document.getElementById('welcomeScreen');
+const difficultyScreen = document.getElementById('difficultyScreen');
+const boardColorScreen = document.getElementById('boardColorScreen');
+const backgroundColorScreen = document.getElementById('backgroundColorScreen');
+const gameScreen = document.getElementById('gameScreen');
+const gameGrid = document.getElementById('gameGrid');
+const gridWrapper = document.getElementById('gridWrapper');
+const p1Name = document.getElementById('p1Name'), p2Name = document.getElementById('p2Name');
+const p1Score = document.getElementById('p1Score'), p2Score = document.getElementById('p2Score');
+const currentLetterBtn = document.getElementById('currentLetter');
+const turnIndicator = document.getElementById('turnIndicator');
+
+// color selection
+let selectedBoardColor = '#bfe6ff', selectedBgColor = '#bfe6ff';
+
+// ---------- Event listeners (emoji clean) ----------
+document.getElementById('btnRobot').addEventListener('click', ()=>{
+  initAudio(); playClickSound(); playMode = 'ai'; welcomeScreen.classList.add('hidden'); difficultyScreen.classList.remove('hidden');
+});
+document.getElementById('btnHuman').addEventListener('click', ()=>{
+  initAudio(); playClickSound(); playMode = 'human'; welcomeScreen.classList.add('hidden'); startGame();
+});
+document.getElementById('boardColorBtn').addEventListener('click', ()=>{
+  initAudio(); playClickSound(); welcomeScreen.classList.add('hidden'); boardColorScreen.classList.remove('hidden');
+});
+document.getElementById('bgColorBtn').addEventListener('click', ()=>{
+  initAudio(); playClickSound(); welcomeScreen.classList.add('hidden'); backgroundColorScreen.classList.remove('hidden');
+});
+document.getElementById('backFromBoardColor').addEventListener('click', ()=>{
+  playClickSound(); boardColorScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden');
+});
+document.getElementById('backFromBgColor').addEventListener('click', ()=>{
+  playClickSound(); backgroundColorScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden');
+});
+document.getElementById('confirmBoardColorBtn').addEventListener('click', ()=>{
+  playClickSound(); document.documentElement.style.setProperty('--grid-bg', selectedBoardColor);
+  boardColorScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden');
+});
+document.getElementById('confirmBgColorBtn').addEventListener('click', ()=>{
+  playClickSound(); document.documentElement.style.setProperty('--bg', selectedBgColor);
+  backgroundColorScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden');
+});
+document.getElementById('backFromDifficulty').addEventListener('click', ()=>{
+  playClickSound(); difficultyScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden');
+});
+document.querySelectorAll('#difficultyScreen .diff-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    playClickSound(); aiDifficulty = b.dataset.diff; p2Name.value = 'AI ('+aiDifficulty+')';
+    difficultyScreen.classList.add('hidden'); startGame();
+  });
+});
+
+// color pickers
+document.querySelectorAll('#boardColorScreen .color-option').forEach(opt => {
+  opt.addEventListener('click', ()=>{
+    playClickSound(); document.querySelectorAll('#boardColorScreen .color-option').forEach(o=>o.classList.remove('selected'));
+    opt.classList.add('selected'); selectedBoardColor = opt.dataset.color;
+  });
+});
+document.querySelectorAll('#backgroundColorScreen .color-option').forEach(opt => {
+  opt.addEventListener('click', ()=>{
+    playClickSound(); document.querySelectorAll('#backgroundColorScreen .color-option').forEach(o=>o.classList.remove('selected'));
+    opt.classList.add('selected'); selectedBgColor = opt.dataset.color;
+  });
+});
+
+p1Name.addEventListener('click', ()=> { playClickSound(); setActivePlayer(1); });
+p2Name.addEventListener('click', ()=> { playClickSound(); setActivePlayer(2); });
+
+currentLetterBtn.addEventListener('click', ()=>{
+  playClickSound(); currentLetter = currentLetter === 'S' ? 'O' : 'S';
+  currentLetterBtn.textContent = '🔤 Current: ' + currentLetter;
+});
+document.getElementById('backBtn').addEventListener('click', ()=>{
+  playClickSound(); gameScreen.classList.add('hidden');
+  if(playMode === 'ai') difficultyScreen.classList.remove('hidden'); else welcomeScreen.classList.remove('hidden');
+});
+
+// ---------- functions ----------
+function setActivePlayer(n){
+  activePlayer = n;
+  if(n===1){ p1Name.classList.add('active'); p2Name.classList.remove('active'); turnIndicator.textContent = "🎲 Your Turn: " + p1Name.value; }
+  else { p2Name.classList.add('active'); p1Name.classList.remove('active'); turnIndicator.textContent = (playMode==='ai'?"🤖 AI thinking...":"🎲 Your Turn: " + p2Name.value); }
+}
+function updateTurnIndicator() {
+  if(activePlayer===1) turnIndicator.textContent = "🎲 Your Turn: " + p1Name.value;
+  else turnIndicator.textContent = playMode==='ai' ? "🤖 AI thinking..." : "🎲 Your Turn: " + p2Name.value;
+}
+function createGrid(){
+  gameGrid.innerHTML = ''; gridWrapper.querySelectorAll('.line').forEach(n=>n.remove());
+  gridData.fill('');
+  for(let i=0;i<TOTAL_CELLS;i++){
+    const cell = document.createElement('div'); cell.className = 'cell'; cell.dataset.index = i;
+    cell.innerHTML = '<span></span>';
+    cell.addEventListener('click', ()=> onCellClick(i));
+    cell.addEventListener('touchstart', (e)=>{ e.preventDefault(); onCellClick(i); }, {passive:false});
+    gameGrid.appendChild(cell);
+  }
+}
+function startGame(){
+  scores = {1:0,2:0}; gameScreen.classList.remove('hidden'); setActivePlayer(1);
+  p1Score.textContent = '0'; p2Score.textContent = '0'; createGrid(); gamePaused = false;
+}
+
+function onCellClick(index){
+  if(gamePaused || (playMode==='ai' && activePlayer!==1) || gridData[index]!=='' || aiThinking) return;
+  playClickSound();
+  gridData[index] = currentLetter; gameGrid.children[index].querySelector('span').textContent = currentLetter;
+  const sequences = findSOSSequences(index);
+  if(sequences.length > 0){
+    playScoreSound();
+    sequences.forEach(seq=>{ seq.forEach(idx=>gameGrid.children[idx]?.classList.add('highlight')); drawLineBetweenCells(seq[0], seq[2]); });
+    scores[activePlayer] += sequences.length; updateScores(); updateTurnIndicator();
+  } else {
+    activePlayer = (activePlayer===1)?2:1; setActivePlayer(activePlayer);
+  }
+  checkGameOver();
+  if(playMode==='ai' && activePlayer===2 && !aiThinking && !gamePaused){
+    aiThinking = true; updateTurnIndicator();
+    setTimeout(()=>{ aiMove(); aiThinking = false; updateTurnIndicator(); }, 300+Math.random()*400);
+  }
+}
+function findSOSSequences(idx){ /* same logic */
+  const rows = Math.ceil(TOTAL_CELLS/COLS), row = Math.floor(idx/COLS), col = idx%COLS;
+  const dirs = [[0,1],[1,0],[1,1],[1,-1]]; let seqs=[];
+  for(const [dr,dc] of dirs){
+    if(gridData[idx]==='O'){
+      const r1=row-dr,c1=col-dc, r2=row+dr,c2=col+dc;
+      if(isValidCell(r1,c1,rows) && isValidCell(r2,c2,rows)){
+        const i1=r1*COLS+c1,i2=idx,i3=r2*COLS+c2;
+        if(gridData[i1]==='S' && gridData[i3]==='S') seqs.push([i1,i2,i3]);
+      }
+    }
+    if(gridData[idx]==='S'){
+      const r1=row+dr,c1=col+dc, r2=row+2*dr,c2=col+2*dc;
+      if(isValidCell(r1,c1,rows) && isValidCell(r2,c2,rows)){
+        const i1=idx,i2=r1*COLS+c1,i3=r2*COLS+c2;
+        if(gridData[i2]==='O' && gridData[i3]==='S') seqs.push([i1,i2,i3]);
+      }
+      const r_1=row-dr,c_1=col-dc, r_2=row-2*dr,c_2=col-2*dc;
+      if(isValidCell(r_1,c_1,rows) && isValidCell(r_2,c_2,rows)){
+        const i1=r_2*COLS+c_2,i2=r_1*COLS+c_1,i3=idx;
+        if(gridData[i1]==='S' && gridData[i2]==='O') seqs.push([i1,i2,i3]);
+      }
+    }
+  }
+  return seqs;
+}
+function isValidCell(r,c,rows){ return r>=0 && r<rows && c>=0 && c<COLS; }
+function drawLineBetweenCells(idxA,idxB){
+  const cellA=gameGrid.children[idxA], cellB=gameGrid.children[idxB]; if(!cellA||!cellB)return;
+  const wrap=gridWrapper.getBoundingClientRect(), a=cellA.getBoundingClientRect(), b=cellB.getBoundingClientRect();
+  const ax=a.left+a.width/2-wrap.left, ay=a.top+a.height/2-wrap.top, bx=b.left+b.width/2-wrap.left, by=b.top+b.height/2-wrap.top;
+  const dx=bx-ax, dy=by-ay, len=Math.sqrt(dx*dx+dy*dy), angle=Math.atan2(dy,dx)*180/Math.PI;
+  const midX=(ax+bx)/2, midY=(ay+by)/2;
+  const line=document.createElement('div'); line.className='line';
+  line.style.width=(len+6)+'px'; line.style.left=(midX-(len/2)-3)+'px'; line.style.top=(midY-1)+'px'; line.style.transform='rotate('+angle+'deg)';
+  gridWrapper.appendChild(line);
+}
+function updateScores(){ p1Score.textContent=scores[1]; p2Score.textContent=scores[2]; }
+
+function aiMove(){ // simplified but keeps logic; uses same AI but now emoji only
+  if(gamePaused) return;
+  const empties = gridData.map((v,i)=> v===''?i:-1).filter(i=>i>=0); if(empties.length===0) return;
+  function imm(idx, letr){ let b=gridData[idx]; gridData[idx]=letr; let s=findSOSSequences(idx).length; gridData[idx]=b; return s; }
+  if(aiDifficulty==='easy'){ let i=empties[Math.floor(Math.random()*empties.length)], l=Math.random()>0.5?'S':'O'; placeAIMove(i,l); return; }
+  if(aiDifficulty==='medium'){
+    for(let l of ['S','O']) for(let i of empties) if(imm(i,l)>0){ placeAIMove(i,l); return; }
+    let i=empties[Math.floor(Math.random()*empties.length)], l=Math.random()>0.5?'S':'O'; placeAIMove(i,l); return;
+  }
+  if(aiDifficulty==='hard'){
+    let best={idx:null,letter:'S',score:-Infinity,imm:0};
+    for(let i of empties){
+      for(let l of ['S','O']){
+        let aiImm=imm(i,l); gridData[i]=l;
+        let oppEmpties=gridData.map((v,j)=> v===''?j:-1).filter(j=>j>=0), oppMax=0;
+        for(let oi of oppEmpties) for(let ol of ['S','O']) oppMax=Math.max(oppMax,imm(oi,ol));
+        let net=aiImm*10-oppMax*8; gridData[i]='';
+        if(net>best.score || (net===best.score && aiImm>best.imm)) best={idx:i,letter:l,score:net,imm:aiImm};
+      }
+    }
+    if(best.idx!==null){ placeAIMove(best.idx,best.letter); return; }
+    let i=empties[Math.floor(Math.random()*empties.length)]; placeAIMove(i,'S'); return;
+  }
+}
+function placeAIMove(idx,letter){
+  if(gamePaused) return; playClickSound();
+  gridData[idx]=letter; gameGrid.children[idx].querySelector('span').textContent=letter;
+  let prev=activePlayer; activePlayer=2; setActivePlayer(2);
+  let seq=findSOSSequences(idx);
+  if(seq.length>0){
+    playScoreSound();
+    seq.forEach(s=>{ s.forEach(i=>gameGrid.children[i]?.classList.add('highlight')); drawLineBetweenCells(s[0],s[2]); });
+    scores[2]+=seq.length; updateScores(); checkGameOver();
+    if(playMode==='ai' && !gamePaused) setTimeout(()=>{
+      if(gridData.filter(v=>v==='').length>0 && !gamePaused){ aiThinking=true; updateTurnIndicator(); setTimeout(()=>{ aiMove(); aiThinking=false; updateTurnIndicator();},250+Math.random()*300); }
+    },200);
+  } else { activePlayer=1; setActivePlayer(1); checkGameOver(); }
+}
+
+function checkGameOver(){
+  if(gridData.every(v=>v!=='')){
+    let msg = scores[1]>scores[2] ? '🏆 Winner: '+p1Name.value : (scores[2]>scores[1] ? '🏆 Winner: '+p2Name.value : '🤝 Draw!');
+    showEndMessage(msg);
+  }
+}
+function showEndMessage(msg){
+  playGameOverSound();
+  let ov=document.createElement('div'); ov.className='end-game-overlay';
+  let txt=document.createElement('div'); txt.className='end-game-message'; txt.textContent=msg; ov.appendChild(txt);
+  let btns=document.createElement('div'); btns.className='end-game-buttons';
+  let rst=document.createElement('button'); rst.className='end-game-btn restart-btn'; rst.textContent='🔄 Restart';
+  rst.addEventListener('click',()=>{ playClickSound(); ov.remove(); startGame(); });
+  let back=document.createElement('button'); back.className='end-game-btn back-end-btn'; back.textContent='🏠 Menu';
+  back.addEventListener('click',()=>{ playClickSound(); ov.remove(); gameScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden'); });
+  btns.appendChild(rst); btns.appendChild(back); ov.appendChild(btns); document.body.appendChild(ov);
+}
+// visibility pause
+document.addEventListener('visibilitychange', ()=>{
+  if(gameScreen.classList.contains('hidden')) return;
+  if(document.hidden) pauseGame(); else resumeGame();
+});
+function pauseGame(){
+  if(gamePaused) return; gamePaused=true;
+  let po=document.createElement('div'); po.className='pause-overlay'; po.id='pauseOverlay';
+  let pm=document.createElement('div'); pm.className='pause-message'; pm.textContent='⏸️ Paused'; po.appendChild(pm);
+  let rs=document.createElement('button'); rs.className='resume-btn'; rs.textContent='▶️ Resume';
+  rs.addEventListener('click',()=>{ playClickSound(); resumeGame(); }); po.appendChild(rs); document.body.appendChild(po);
+  turnIndicator.textContent='⏸️ Game Paused';
+}
+function resumeGame(){
+  if(!gamePaused) return; gamePaused=false; document.getElementById('pauseOverlay')?.remove(); updateTurnIndicator();
+  if(playMode==='ai' && activePlayer===2 && !aiThinking){ aiThinking=true; updateTurnIndicator(); setTimeout(()=>{ aiMove(); aiThinking=false; updateTurnIndicator();},300+Math.random()*400); }
+}
+function initSOSGrid() { /* dynamic background, unchanged */
+  let g=document.getElementById('sosGrid'); for(let i=0;i<144;i++){ let d=document.createElement('div'); d.className='sos-cell'; d.textContent=Math.random()>0.5?'S':'O'; g.appendChild(d); }
+}
+window.addEventListener('load', initSOSGrid);
+setActivePlayer(1); welcomeScreen.classList.remove('hidden'); difficultyScreen.classList.add('hidden');
+boardColorScreen.classList.add('hidden'); backgroundColorScreen.classList.add('hidden'); gameScreen.classList.add('hidden');
+</script>
+</body>
+</html>
