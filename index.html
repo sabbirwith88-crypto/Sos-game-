@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SOS Game · Gameover Ad</title>
+<title>SOS Game · limited ads (ID updated)</title>
 <style>
   :root{
     --bg:#bfe6ff;
@@ -674,11 +674,11 @@ function playWinSound() {
   }
 }
 
-// ---------- AdsGram interstitial (blockId: int-24073) ----------
+// ---------- AdsGram interstitial (UPDATED BLOCK ID: int-24139) ----------
 let adController = null;
 try {
   if (window.Adsgram) {
-    adController = Adsgram.init({ blockId: "int-24073" });
+    adController = Adsgram.init({ blockId: "int-24139" });
   } else {
     console.warn("Adsgram SDK not loaded yet");
   }
@@ -734,15 +734,13 @@ const turnIndicator = document.getElementById('turnIndicator');
 
 let selectedBoardColor = '#bfe6ff', selectedBgColor = '#bfe6ff';
 
-// ---------- Event listeners ----------
-document.getElementById('btnRobot').addEventListener('click', async ()=>{
+// ---------- Event listeners (NO ADS on play buttons) ----------
+document.getElementById('btnRobot').addEventListener('click', ()=>{
   initAudio(); playClickSound(); 
-  await showInterstitialAd();  // ad on robot click
   playMode = 'ai'; welcomeScreen.classList.add('hidden'); difficultyScreen.classList.remove('hidden');
 });
-document.getElementById('btnHuman').addEventListener('click', async ()=>{
+document.getElementById('btnHuman').addEventListener('click', ()=>{
   initAudio(); playClickSound(); 
-  await showInterstitialAd();  // ad on human click
   playMode = 'human'; welcomeScreen.classList.add('hidden'); startGame();
 });
 document.getElementById('boardColorBtn').addEventListener('click', ()=>{
@@ -796,9 +794,11 @@ currentLetterBtn.addEventListener('click', ()=>{
   playClickSound(); currentLetter = currentLetter === 'S' ? 'O' : 'S';
   currentLetterBtn.textContent = '🔤 Current: ' + currentLetter;
 });
+
+// BACK button (in game) - shows interstitial
 document.getElementById('backBtn').addEventListener('click', async ()=>{
   playClickSound(); 
-  await showInterstitialAd();   // ad on back to menu
+  await showInterstitialAd();   // ad on back to menu (inside game)
   gameScreen.classList.add('hidden');
   if(playMode === 'ai') difficultyScreen.classList.remove('hidden'); else welcomeScreen.classList.remove('hidden');
 });
@@ -926,7 +926,7 @@ function placeAIMove(idx,letter){
   } else { activePlayer=1; setActivePlayer(1); checkGameOver(); }
 }
 
-// Game over check – now shows interstitial AFTER result but before end overlay
+// Game over check – shows interstitial AFTER result but before end overlay
 async function checkGameOver(){
   if(gridData.every(v=>v!=='')){
     let winner = null;
@@ -947,7 +947,7 @@ async function checkGameOver(){
       playWinSound();
     }
     
-    // 👉 Show interstitial ad before end message
+    // 👉 Show interstitial ad before end message (GAME OVER)
     await showInterstitialAd();
     
     // then show the end overlay
@@ -1008,7 +1008,7 @@ function initSOSGrid() {
 window.addEventListener('load', ()=>{
   initSOSGrid();
   loadAdsterraBanner();
-  // initial interstitial on game load (first visit)
+  // initial interstitial on game load (first visit) - allowed
   setTimeout(()=>{
     showInterstitialAd();
   }, 1000);
