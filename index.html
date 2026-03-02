@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SOS Game · Emoji style</title>
+<title>SOS Game · Gameover Ad</title>
 <style>
   :root{
     --bg:#bfe6ff;
@@ -21,6 +21,7 @@
     background:var(--bg);
     -webkit-font-smoothing:antialiased;
     overflow-x: hidden;
+    padding-bottom: 70px;
   }
   .center-screen{
     min-height:100vh;
@@ -245,11 +246,9 @@
   
   .end-game-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.85);
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -260,8 +259,20 @@
     box-sizing: border-box;
     text-align: center;
   }
-  .end-game-message { font-size: 2.5rem; margin-bottom: 30px; font-weight: 700; }
-  .end-game-buttons { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 300px; }
+  .end-game-message { font-size: 2.5rem; margin-bottom: 20px; font-weight: 700; }
+  .reward-code-area {
+    background: #222; padding: 15px 25px; border-radius: 40px;
+    font-family: monospace; font-size: 2rem; letter-spacing: 4px;
+    border: 2px solid gold; color: #ffd966; margin: 15px 0 20px;
+    display: inline-flex; align-items: center; gap: 15px;
+  }
+  .copy-btn {
+    background: gold; border: none; border-radius: 30px;
+    padding: 10px 20px; font-size: 1.2rem; font-weight: bold;
+    cursor: pointer; color: black; transition: 0.2s;
+  }
+  .copy-btn:hover { background: #ffc107; transform: scale(1.05); }
+  .end-game-buttons { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 300px; margin-top: 10px; }
   .end-game-btn { padding: 16px; border-radius: 12px; border: none; font-size: 18px; font-weight: 600; cursor: pointer; }
   .restart-btn { background: var(--primary-color); color: white; }
   .back-end-btn { background: var(--secondary-color); color: white; }
@@ -502,11 +513,31 @@
     color: white;
   }
   .resume-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+  /* fixed banner bottom */
+  .banner-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 5px 0;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+  }
 </style>
+<!-- AdsGram SDK -->
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-<!-- Welcome screen with emoji icons (no Chinese) -->
+<!-- fixed banner placeholder -->
+<div id="adsterraBanner" class="banner-bottom"></div>
+
+<!-- Welcome screen -->
 <div id="welcomeScreen" class="center-screen">
   <div class="welcome-bg"><div class="sos-grid" id="sosGrid"></div></div>
   <div class="welcome-card">
@@ -515,8 +546,8 @@
     <button class="welcome-btn" id="btnRobot">🤖 Play with Robot</button>
     <button class="welcome-btn" id="btnHuman">👥 Play with Friend</button>
     <div class="icon-bar">
-      <div class="icon-btn" id="boardColorBtn">🎨</div>   <!-- palette emoji -->
-      <div class="icon-btn" id="bgColorBtn">🌈</div>      <!-- rainbow bg -->
+      <div class="icon-btn" id="boardColorBtn">🎨</div>
+      <div class="icon-btn" id="bgColorBtn">🌈</div>
     </div>
   </div>
 </div>
@@ -559,7 +590,7 @@
   <button id="backFromBgColor" class="big-btn">🔙 Back</button>
 </div>
 
-<!-- Difficulty screen (fully emoji) -->
+<!-- Difficulty screen -->
 <div id="difficultyScreen" class="center-screen hidden">
   <div class="difficulty-bg"></div>
   <h2 class="fancy-title">⚙️ AI Difficulty ⚙️</h2>
@@ -596,7 +627,7 @@
 </div>
 
 <script>
-/* Audio context */
+// ---------- Audio ----------
 let audioCtx = null;
 function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
 function playClickSound() {
@@ -630,6 +661,58 @@ function playGameOverSound() {
   osc.connect(g).connect(audioCtx.destination);
   osc.start(); osc.stop(audioCtx.currentTime + 1.2);
 }
+function playWinSound() {
+  if (!audioCtx) initAudio();
+  const now = audioCtx.currentTime;
+  for (let i=0; i<3; i++) {
+    let osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = "triangle"; osc.frequency.value = 600 + i*200;
+    g.gain.setValueAtTime(0.3, now + i*0.1);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.5);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(now + i*0.1); osc.stop(now + i*0.1 + 0.5);
+  }
+}
+
+// ---------- AdsGram interstitial (blockId: int-24073) ----------
+let adController = null;
+try {
+  if (window.Adsgram) {
+    adController = Adsgram.init({ blockId: "int-24073" });
+  } else {
+    console.warn("Adsgram SDK not loaded yet");
+  }
+} catch (e) { console.error("Adsgram init error", e); }
+
+function showInterstitialAd() {
+  return new Promise((resolve) => {
+    if (!adController) {
+      console.warn("AdController not ready, skipping ad");
+      resolve(false);
+      return;
+    }
+    adController.show().then(() => {
+      console.log("Ad finished");
+      resolve(true);
+    }).catch((result) => {
+      console.warn("Ad error or closed", result);
+      resolve(false);
+    });
+  });
+}
+
+// ---------- Adsterra banner ----------
+function loadAdsterraBanner() {
+  let bannerDiv = document.getElementById('adsterraBanner');
+  bannerDiv.innerHTML = '';
+  let script = document.createElement('script');
+  script.innerHTML = `atOptions = { 'key' : '876347bee8b7b85a1df3c630592111fb', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };`;
+  bannerDiv.appendChild(script);
+  let invoke = document.createElement('script');
+  invoke.src = "https://www.highperformanceformat.com/876347bee8b7b85a1df3c630592111fb/invoke.js";
+  invoke.async = true;
+  bannerDiv.appendChild(invoke);
+}
 
 // ---------- GLOBALS ----------
 const TOTAL_CELLS = 80, COLS = 8;
@@ -649,15 +732,18 @@ const p1Score = document.getElementById('p1Score'), p2Score = document.getElemen
 const currentLetterBtn = document.getElementById('currentLetter');
 const turnIndicator = document.getElementById('turnIndicator');
 
-// color selection
 let selectedBoardColor = '#bfe6ff', selectedBgColor = '#bfe6ff';
 
-// ---------- Event listeners (emoji clean) ----------
-document.getElementById('btnRobot').addEventListener('click', ()=>{
-  initAudio(); playClickSound(); playMode = 'ai'; welcomeScreen.classList.add('hidden'); difficultyScreen.classList.remove('hidden');
+// ---------- Event listeners ----------
+document.getElementById('btnRobot').addEventListener('click', async ()=>{
+  initAudio(); playClickSound(); 
+  await showInterstitialAd();  // ad on robot click
+  playMode = 'ai'; welcomeScreen.classList.add('hidden'); difficultyScreen.classList.remove('hidden');
 });
-document.getElementById('btnHuman').addEventListener('click', ()=>{
-  initAudio(); playClickSound(); playMode = 'human'; welcomeScreen.classList.add('hidden'); startGame();
+document.getElementById('btnHuman').addEventListener('click', async ()=>{
+  initAudio(); playClickSound(); 
+  await showInterstitialAd();  // ad on human click
+  playMode = 'human'; welcomeScreen.classList.add('hidden'); startGame();
 });
 document.getElementById('boardColorBtn').addEventListener('click', ()=>{
   initAudio(); playClickSound(); welcomeScreen.classList.add('hidden'); boardColorScreen.classList.remove('hidden');
@@ -710,12 +796,14 @@ currentLetterBtn.addEventListener('click', ()=>{
   playClickSound(); currentLetter = currentLetter === 'S' ? 'O' : 'S';
   currentLetterBtn.textContent = '🔤 Current: ' + currentLetter;
 });
-document.getElementById('backBtn').addEventListener('click', ()=>{
-  playClickSound(); gameScreen.classList.add('hidden');
+document.getElementById('backBtn').addEventListener('click', async ()=>{
+  playClickSound(); 
+  await showInterstitialAd();   // ad on back to menu
+  gameScreen.classList.add('hidden');
   if(playMode === 'ai') difficultyScreen.classList.remove('hidden'); else welcomeScreen.classList.remove('hidden');
 });
 
-// ---------- functions ----------
+// ---------- Game functions ----------
 function setActivePlayer(n){
   activePlayer = n;
   if(n===1){ p1Name.classList.add('active'); p2Name.classList.remove('active'); turnIndicator.textContent = "🎲 Your Turn: " + p1Name.value; }
@@ -759,7 +847,7 @@ function onCellClick(index){
     setTimeout(()=>{ aiMove(); aiThinking = false; updateTurnIndicator(); }, 300+Math.random()*400);
   }
 }
-function findSOSSequences(idx){ /* same logic */
+function findSOSSequences(idx){
   const rows = Math.ceil(TOTAL_CELLS/COLS), row = Math.floor(idx/COLS), col = idx%COLS;
   const dirs = [[0,1],[1,0],[1,1],[1,-1]]; let seqs=[];
   for(const [dr,dc] of dirs){
@@ -798,7 +886,8 @@ function drawLineBetweenCells(idxA,idxB){
 }
 function updateScores(){ p1Score.textContent=scores[1]; p2Score.textContent=scores[2]; }
 
-function aiMove(){ // simplified but keeps logic; uses same AI but now emoji only
+// --- AI move ---
+function aiMove(){
   if(gamePaused) return;
   const empties = gridData.map((v,i)=> v===''?i:-1).filter(i=>i>=0); if(empties.length===0) return;
   function imm(idx, letr){ let b=gridData[idx]; gridData[idx]=letr; let s=findSOSSequences(idx).length; gridData[idx]=b; return s; }
@@ -837,16 +926,55 @@ function placeAIMove(idx,letter){
   } else { activePlayer=1; setActivePlayer(1); checkGameOver(); }
 }
 
-function checkGameOver(){
+// Game over check – now shows interstitial AFTER result but before end overlay
+async function checkGameOver(){
   if(gridData.every(v=>v!=='')){
-    let msg = scores[1]>scores[2] ? '🏆 Winner: '+p1Name.value : (scores[2]>scores[1] ? '🏆 Winner: '+p2Name.value : '🤝 Draw!');
-    showEndMessage(msg);
+    let winner = null;
+    if(scores[1] > scores[2]) winner = 1;
+    else if(scores[2] > scores[1]) winner = 2;
+    else winner = 0;
+    
+    let msg = '';
+    if(winner === 1) msg = '🏆 Winner: '+p1Name.value;
+    else if(winner === 2) msg = '🏆 Winner: '+p2Name.value;
+    else msg = '🤝 Draw!';
+    
+    let specialCode = null;
+    if(playMode === 'ai' && aiDifficulty === 'hard' && winner === 1) {
+      let rand = Math.floor(100000 + Math.random()*900000);
+      let timePart = Date.now() % 1000000;
+      specialCode = String(timePart).padStart(6,'0') + String(rand).padStart(6,'0');
+      playWinSound();
+    }
+    
+    // 👉 Show interstitial ad before end message
+    await showInterstitialAd();
+    
+    // then show the end overlay
+    showEndMessage(msg, specialCode);
   }
 }
-function showEndMessage(msg){
+
+function showEndMessage(msg, code = null){
   playGameOverSound();
   let ov=document.createElement('div'); ov.className='end-game-overlay';
   let txt=document.createElement('div'); txt.className='end-game-message'; txt.textContent=msg; ov.appendChild(txt);
+  
+  if(code) {
+    let codeDiv = document.createElement('div'); codeDiv.style.margin = '10px 0';
+    let codeSpan = document.createElement('span'); codeSpan.className = 'reward-code-area';
+    codeSpan.innerHTML = `🎁 ${code} 🎁 <button class="copy-btn" id="copyRewardBtn">📋 Copy</button>`;
+    ov.appendChild(codeSpan);
+    setTimeout(()=>{
+      let copyBtn = document.getElementById('copyRewardBtn');
+      if(copyBtn) copyBtn.addEventListener('click', ()=>{
+        navigator.clipboard.writeText(code).then(()=>{
+          alert('✅ Code copied!');
+        }).catch(()=>{ prompt('Copy manually:', code); });
+      });
+    }, 50);
+  }
+  
   let btns=document.createElement('div'); btns.className='end-game-buttons';
   let rst=document.createElement('button'); rst.className='end-game-btn restart-btn'; rst.textContent='🔄 Restart';
   rst.addEventListener('click',()=>{ playClickSound(); ov.remove(); startGame(); });
@@ -854,6 +982,7 @@ function showEndMessage(msg){
   back.addEventListener('click',()=>{ playClickSound(); ov.remove(); gameScreen.classList.add('hidden'); welcomeScreen.classList.remove('hidden'); });
   btns.appendChild(rst); btns.appendChild(back); ov.appendChild(btns); document.body.appendChild(ov);
 }
+
 // visibility pause
 document.addEventListener('visibilitychange', ()=>{
   if(gameScreen.classList.contains('hidden')) return;
@@ -871,10 +1000,20 @@ function resumeGame(){
   if(!gamePaused) return; gamePaused=false; document.getElementById('pauseOverlay')?.remove(); updateTurnIndicator();
   if(playMode==='ai' && activePlayer===2 && !aiThinking){ aiThinking=true; updateTurnIndicator(); setTimeout(()=>{ aiMove(); aiThinking=false; updateTurnIndicator();},300+Math.random()*400); }
 }
-function initSOSGrid() { /* dynamic background, unchanged */
+function initSOSGrid() {
   let g=document.getElementById('sosGrid'); for(let i=0;i<144;i++){ let d=document.createElement('div'); d.className='sos-cell'; d.textContent=Math.random()>0.5?'S':'O'; g.appendChild(d); }
 }
-window.addEventListener('load', initSOSGrid);
+
+// ---------- Launch ----------
+window.addEventListener('load', ()=>{
+  initSOSGrid();
+  loadAdsterraBanner();
+  // initial interstitial on game load (first visit)
+  setTimeout(()=>{
+    showInterstitialAd();
+  }, 1000);
+});
+
 setActivePlayer(1); welcomeScreen.classList.remove('hidden'); difficultyScreen.classList.add('hidden');
 boardColorScreen.classList.add('hidden'); backgroundColorScreen.classList.add('hidden'); gameScreen.classList.add('hidden');
 </script>
